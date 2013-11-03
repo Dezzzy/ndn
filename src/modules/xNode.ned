@@ -25,7 +25,7 @@ import ndn.src.base.application.IBaseNdnApplLayer;
 import ndn.src.base.cache.IBaseNdnCacheLayer;
 
 
-module XNode 
+module XNode
 {
     parameters:
         string networkType = default("BaseNetwLayer");       //type of the network layer
@@ -37,47 +37,55 @@ module XNode
         string csType = default("ContentStore");
         string fibType = default("forwardingInfoBase");
         @display("bgb=210,450,white;i=device/palm;b=40,40,rect");
-        
+
     gates:
         input radioIn; // gate for sendDirect
-        
+
     submodules:
         arp: <arpType> like IBaseArp {
-                @display("p=140,100;i=block/network2");
+            @display("p=159,100;i=block/network2");
         }
         mobility: <mobilityType> like IMobility {
             parameters:
-                @display("p=140,30;i=block/cogwheel");
+                @display("p=159,30;i=block/cogwheel");
         }
         nic: <nicType> like IWirelessNicUpperCtrl {
             parameters:
-                @display("p=70,380;i=block/wrxtx,#008000");
+                @display("p=70,384;i=block/wrxtx,#008000");
         }
         // OSI network layer
         netwl: <networkType> like IBaseNetwLayer {
             parameters:
-                @display("p=70,310;i=block/layer");
+                @display("p=70,283;i=block/layer");
         }
-        
-        appl: <applicationType> like IBaseNdnApplLayer;
-        
-        pit: <pitType> like IBaseNdnCacheLayer;
-        
-        cs: <csType> like IBaseNdnCacheLayer;
-        
-        fib : <fibType> like IBaseNdnCacheLayer;
-        
+
+        appl: <applicationType> like IBaseNdnApplLayer {
+
+            @display("p=159,283");
+        }
+        pit: <pitType> like IBaseNdnCacheLayer {
+
+            @display("p=70,30");
+        }
+        cs: <csType> like IBaseNdnCacheLayer {
+
+            @display("p=70,100");
+        }
+        fib: <fibType> like IBaseNdnCacheLayer {
+
+            @display("p=70,165");
+        }
     connections allowunconnected:
         nic.upperLayerOut --> netwl.lowerLayerIn;
         nic.upperLayerIn <-- netwl.lowerLayerOut;
         nic.upperControlOut --> { @display("ls=red;m=m,70,0,70,0"); } --> netwl.lowerControlIn;
         nic.upperControlIn <-- { @display("ls=red;m=m,70,0,70,0"); } <-- netwl.lowerControlOut;
-        
-        
+
+
         netwl.upperLayerOut --> appl.lowerLayerIn;
         netwl.upperLayerIn <-- appl.lowerLayerOut;
         netwl.upperControlOut --> appl.lowerControlIn;
         netwl.upperControlIn <-- appl.lowerControlOut;
-        
+
         radioIn --> nic.radioIn;
 }

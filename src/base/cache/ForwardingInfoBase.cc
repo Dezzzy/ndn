@@ -17,12 +17,8 @@
 
 Define_Module(ForwardingInfoBase);
 
-void ForwardingInfoBase::initialize()
+void ForwardingInfoBase::initialize(int stage)
 {
-    // TODO - Generated method body
+    CacheLayer::initialize(stage);
 }
 
-void ForwardingInfoBase::handleMessage(cMessage *msg)
-{
-    // TODO - Generated method body
-}

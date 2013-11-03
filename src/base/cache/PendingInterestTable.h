@@ -23,19 +23,33 @@
 
 class PendingInterestTable : public CacheLayer
 {
-
 public:
+    enum INTEREST_REQUEST_TYPES{
+        NO_REQ = 10,
+        SELF_REQ ,
+        EXTERNAL_REQ,
+        SELF_EXT_REQ
+
+    };
+
+    int* reqType;
+public:
+    int isSelfRequest(const char*  msgData);
+    int isExternalRequest(const char* msgData);
+    void setRequestType(short type);
+    virtual int checkCache(const char* msgData,uint32_t* k1, uint32_t* k2);
+    virtual void updateCache(const char* msgData,int mode,uint32_t k1, uint32_t k2,type);
+    virtual const char* retreiveCacheData(const char* msgData,uint32_t k1, uint32_t k2);
+
+    virtual void updateBloomFilter(uint32_t hash1, uint32_t hash2);
+    virtual int checkBloomFilter(uint32_t hash1, uint32_t hash2);
 
 protected:
-   virtual void initialize(int stage);
-   virtual void handleMessage(cMessage *msg);
-   virtual void handleSelfMsg(cMessage *msg);
-   virtual void updateInsert(const char* msgData, int updateNotInsert);
-   virtual int returnData(const char* msgData);
-   virtual void removeFromCache(const char* msgData);
-   virtual int checkCache(const char* msgData);
-   int isSelfRequest(const char*  msgData);
-   int isExternalRequest(const char* msgData);
+    virtual void initialize(int stage);
+    virtual void handleMessage(cMessage *msg);
+    virtual void handleSelfMsg(cMessage *msg);
+
+
 };
 
 #endif

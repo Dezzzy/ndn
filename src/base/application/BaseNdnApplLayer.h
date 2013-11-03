@@ -17,14 +17,7 @@
 #define __NDN_BASENDNAPPLLAYER_H_
 
 #include <omnetpp.h>
-#include "BaseLayer.h"
-#include "SimpleAddress.h"
-#include "MiXiMDefs.h"
 #include "FindModule.h"
-#include "CacheLayer.h"
-#include "PendingInterestTable.h"
-#include "ContentStore.h"
-#include "ForwardingInfoBase.h"
 #include "BaseNetwLayer.h"
 #include "AddressingInterface.h"
 #include "ArpInterface.h"
@@ -32,7 +25,11 @@
 #include "NetwControlInfo.h"
 #include "ApplPkt_m.h"
 #include "BaseApplLayer.h"
-
+// Cache Layer includes
+#include "CacheLayer.h"
+#include "PendingInterestTable.h"
+#include "ContentStore.h"
+#include "ForwardingInfoBase.h"
 
 
 class BaseNdnApplLayer : public BaseApplLayer
@@ -47,12 +44,15 @@ public:
     enum BASE_NDN_CONTROL_KINDS{
 
     };
-
+cMessage *startMessage;
 
 protected:
+    PendingInterestTable* pit;
+    ContentStore* cs;
+    ForwardingInfoBase* fib;
     int packetTiming;
     int headerLength;
-    cMessage *startMessage;
+
     LAddress::L3Type myAppAddress;
     LAddress::L3Type destAddress;
     int packetsSent;

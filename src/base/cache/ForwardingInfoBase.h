@@ -17,14 +17,21 @@
 #define __NDN_FORWARDINGINFOBASE_H_
 
 #include <omnetpp.h>
-
+#include "CacheLayer.h"
 /**
  * TODO - Generated class
  */
 class ForwardingInfoBase : public CacheLayer
 {
-  protected:
-    virtual void initialize();
+public:
+    virtual int checkCache(const char* msgData);
+    virtual void updateCache(const char* msgData,int mode);
+    virtual const char* retreiveCacheData(const char* msgData);
+
+    virtual void updateBloomFilter(const char* key);
+    virtual int checkBloomFilter(const char* key);
+protected:
+    virtual void initialize(int stage);
     virtual void handleMessage(cMessage *msg);
 };
 

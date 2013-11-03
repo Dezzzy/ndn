@@ -17,12 +17,54 @@
 
 Define_Module(PendingInterestTable);
 
-void PendingInterestTable::initialize()
+void PendingInterestTable::initialize(int stage)
 {
-    // TODO - Generated method body
+    CacheLayer::initialize(stage);
+    if(stage == 0){
+        reqType = new int[CacheSize];
+        for(int i= 0; i < CacheSize; i++){
+            reqType = NO_REQ;
+        }
+    }
+    if(stage == 1){
+
+    }
 }
 
-void PendingInterestTable::handleMessage(cMessage *msg)
+
+int PendingInterestTable::isSelfRequest(uint32_t h1, uint32_t h2)
 {
-    // TODO - Generated method body
+    if(reqType[h1]== SELF_REQ || reqType[h1 == SELF_EXT_REQ]){
+        return 1;
+    } else
+        return 0;
 }
+
+int PendingInterestTable::isExternalRequest(const char* msgData)
+{
+    if(reqType[h1]== EXT_REQ || reqType[h1] == SELF_EXT_REQ){
+        return 1;
+    } else
+        return 0;
+}
+
+void PendingInterestTable::setRequestType(short type)
+{
+    if(type == NO_REQ){
+        reqType = type;
+    }else if (reqType != type){
+        if(reqType == NO_REQ){
+            reqType = type;
+        }
+        else
+            reqType = SELF_EXT_REQ;
+    }
+}
+
+virtual void PendingInterestTable::updateCache(const char* msgData,int mode,uint32_t k1, uint32_t k2,short type)
+{
+    CacheLayer::updateCache(msgData,mode,k1,k2);
+    setRequestType(type);
+}
+
+

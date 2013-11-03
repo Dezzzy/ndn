@@ -22,14 +22,20 @@
 
 class ContentStore : public CacheLayer
 {
- protected:
-   virtual void initialize(int stage);
-   virtual void handleMessage(cMessage *msg);
-   virtual void handleSelfMsg(cMessage *msg);
-   virtual void addToCache();
-   virtual void removeFromCache();
-   virtual void updateCache();
-   virtual void returnData();
+public:
+
+public:
+    virtual int checkCache(const char* msgData);
+    virtual void updateCache(const char* msgData,int mode);
+    virtual const char* retreiveCacheData(const char* msgData);
+
+    virtual void updateBloomFilter(const char* key);
+    virtual int checkBloomFilter(const char* key);
+protected:
+    virtual void initialize(int stage);
+    virtual void handleMessage(cMessage *msg);
+    virtual void handleSelfMsg(cMessage *msg);
+
 
 };
 

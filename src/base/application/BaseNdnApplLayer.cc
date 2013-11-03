@@ -26,14 +26,14 @@ void BaseNdnApplLayer::initialize(int stage)
         headerLength = par("headerLength");
         //debug = par("debug");
         // pointer to NDN cache components
-        PendingInterestTable* pit = FindModule<PendingInterestTable*>::findSubModule(findHost());
-        ContentStore* cs = FindModule<ContentStore*>::findSubModule(findHost());
-        ForwardingInfoBase* fib = FindModule<ForwardingInfoBase*>::findSubModule(findHost());
+        pit = FindModule<PendingInterestTable*>::findSubModule(findHost());
+        cs = FindModule<ContentStore*>::findSubModule(findHost());
+        fib = FindModule<ForwardingInfoBase*>::findSubModule(findHost());
 
-        startingPacket = new cMessage("first packet", BASE_NDN_START_MESSAGE);
+        startMessage = new cMessage("first packet", BASE_NDN_START_MESSAGE);
     }
     if(stage == 1){
-       scheduleAt(simTime() +uniform(0, packetTiming), startingPacket);
+        scheduleAt(simTime() +uniform(0, packetTiming), startMessage);
     }
 
 }
@@ -42,6 +42,7 @@ void BaseNdnApplLayer::handleSelfMsg(cMessage *msg){
     switch(msg->getKind()){
     case BASE_NDN_START_MESSAGE:
         sendNextMessage(11,msg->getName());
+
         break;
     default:
         opp_error("self message must be starting message, recheck message pathing");
@@ -49,9 +50,15 @@ void BaseNdnApplLayer::handleSelfMsg(cMessage *msg){
     }
 }
 
-void BaseNdnApplLayer::handleLowerMsg(cMessage *msg){
+void BaseNdnApplLayer::handleLowerMsg(cMessage *msg)
+{
     ApplPkt* m;
     int Hit = 0;
+    uint32_t pitHash1,pitHash2;
+    uint32_t csHash1,csHash2;
+
+    m = static_cast<ApplPkt *>(msg);
+
     switch(msg->getKind()){
     case BASE_NDN_DATA_MESSAGE:
         /*
@@ -65,14 +72,24 @@ void BaseNdnApplLayer::handleLowerMsg(cMessage *msg){
          *          sendNextMessage(data, message_data)
          */
         Hit = 0;
-        m = static_cast<ApplPkt *>(msg);
-        Hit = pit->checkCache(m->getName());
+
+        Hit = pit->checkCache(m->getName(), &pitHash1, &pitHash2);
         if(Hit){
-            if(pit->isSelfRequest(m->getName())){
-
+            if(pit->isSelfRequest(pitHash1)){
+                cs->checkCache(m->getName(),&csHash1, &csHash2);
+                cs->updateCache(m->getName(),1,csHash1,csHash2);
             }
-            if(pit->isExtReqeust(m.getName())){
+            if(pit->isExternalRequest(pitHash1)){
+                sendNextMessage(BASE_NDN_DATA_MESSAGE,m->getName());
+            }
 
+        } else{
+            Hit = 0;
+            Hit = cs->checkCache(m->getName(), &csHash1,&csHash2);
+            if(Hit){
+                cs->updateCache(m->getName(),0, csHash1,csHash2);
+            } else {
+                cs->updateCache(m,getName(),1,csHash1,csHash2);
             }
 
         }
@@ -95,20 +112,22 @@ void BaseNdnApplLayer::handleLowerMsg(cMessage *msg){
          */
 
         Hit = 0;
-        m = static_cast<ApplPkt *>(msg);
-        Hit = cs->checkCache(m.getName());
-        if(Hit){
-            sendNextMessage(m.getName(),m.getName());
 
+        Hit = cs->checkCache(m->getName(),&csHash1,&csHash2);
+
+        if(Hit){
+            sendNextMessage(BASE_NDN_DATA_MESSAGE,m->getName());
         }else{
             Hit = 0;
-            Hit = pit->checkCache(m.getName());
-            if(Hit){
+            Hit = pit->checkCache(m->getName(),&pitHash1, &pitHash2);
 
+            if(Hit){
+                pit->updateCache(m->getName(),0,k1,k2);
             } else{
+                pit->updateCache(m->getName(),1,k1,k2);
+                sendNextMessage(BASE_NDN_INTEREST_MESSAGE,m.getName());
 
             }
-
         }
         delete msg;
         break;
@@ -121,12 +140,17 @@ void BaseNdnApplLayer::handleLowerMsg(cMessage *msg){
 void BaseNdnApplLayer::sendNextMessage(int messageType, const char* data)
 {
 
+    simtime_t delay;
+
+    delay = uniform(0, 0.01);
+
     ApplPkt *pkt = new ApplPkt(data, messageType);
+
     pkt->setDestAddr(LAddress::L3BROADCAST);
-    pkt->setSrcAddr(myAppAddr());
+    pkt->setSrcAddr(myApplAddr());
     pkt->setByteLength(headerLength);
     NetwControlInfo::setControlInfo(pkt, pkt->getDestAddr());
-    sendDelayedDown(pkt);
+    sendDelayedDown(pkt,delay);
 }
 
 void BaseNdnApplLayer::finish(){

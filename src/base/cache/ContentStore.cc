@@ -17,7 +17,7 @@
 
 Define_Module(ContentStore);
 
-void ContentStore::initialize()
+void ContentStore::initialize(int stage)
 {
     // TODO - Generated method body
 }

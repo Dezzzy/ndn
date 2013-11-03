@@ -13,13 +13,32 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+
+/*
+ * Current Version:
+ * CacheLater uses to well formed hashing algorithms for providing fixed lengths indexs for the Cache.
+ * Collision Resolution is non-existent at the moment, complex issue that needs to be able to handle dynamic cleaning of
+ * Cache.
+ *
+ * CacheLayer implementation:
+ * Cache is checked: first bloom filter, then Cache
+ */
 #include "CacheLayer.h"
 
+
+// Block of inline functions used in both hashing algorithms
+
+/*
+ * ROTL, this function is used to rotate the hashed before final hash is complete
+ */
 inline uint32_t ROTL ( uint32_t x, int8_t r )
 {
     return (x << r) | (x >> (32 - r));
 }
 
+/*
+ * fmix, final mixing of bytes for releasing hash
+ */
 inline uint32_t fmix ( uint32_t h )
 {
     h ^= h >> 16;
@@ -31,34 +50,95 @@ inline uint32_t fmix ( uint32_t h )
     return h;
 }
 
+/*
+ * GetBlock, used as a byte block read for MurmurHash3, used to seperate key, allowing easy folding of data when used in hashing
+ */
 inline uint32_t getblock ( const uint32_t * p, int i )
 {
     return p[i];
 }
 
+// end of inline functions
+
+
 Define_Module(CacheLayer);
 
 void CacheLayer::initialize(int stage)
 {
-    Battery::initialize(stage);
+    BatteryAccess::initialize(stage);
     if(stage == 0){
         CacheSize = par("CacheSize");
         WordSize = par("WordSize");
+
+        Cache = new char*[CacheSize];
+        for(int i  = 0; i < CacheSize;i++){
+            Cache[i] = new char[WordSize];
+        }
+
+        BloomFilter = new int[CacheSize];
+        CacheMem = new int[CacheSize];
     }
     if(stage == 1){
 
     }
 }
 
-void CacheLayer::handleMessage(cMessage *msg)
+int CacheLayer::checkCache(const char* msgData,uint32_t* k1, uint32_t* k2)
 {
-    opp_error("module should not be receiving messages from other modules, check connections and configurations");
+    *k1 = MurmurHash3(msgData, WordSize , 1) / CacheSize;
+    *k2 = SpookyHash(msgData, WordSize, 1) / CacheSize;
+
+    if(checkBloomFilter(*k1,*k2)){
+
+        if(strcmp(msgData, Cache[*k1]) == 0){
+            return 1;
+        } else
+            return 0;
+    }
+    else
+        return 0;
+
 }
 
-void CacheLayer::handleSelfMsg(cMessage *msg)
+void CacheLayer::updateCache(const char* msgData,int mode,uint32_t k1, uint32_t k2)
 {
-    opp_error("no self messages should be received, check configuration");
+   if(mode == UPDATE){                                      //update element
+        strcpy(Cache[k1], msgData);
+        CacheMem[k1] = 1;
+    } else if(mode == INSERT){                               //insert element
+        strcpy(Cache[k1], msgData);
+        updateBloomFilter(k1,k2);
+        CacheMem[k1] = 1;
+    } else if(mode == DEL){                                //delete element
+        CacheMem[k1] = 0;
+    } else{
+        opp_error("wrong mode command given to cache, recheck cache call");
+    }
 }
+
+const char* CacheLayer::retreiveCacheData(const char* msgData,uint32_t k1, uint32_t k2)
+{
+    return Cache[k1];
+}
+
+void CacheLayer::updateBloomFilter(uint32_t hash1, uint32_t hash2)
+{
+    BloomFilter[hash1] = 1;
+    BloomFilter[hash2] = 1;
+}
+
+int CacheLayer::checkBloomFilter(uint32_t hash1, uint32_t hash2)
+{
+    if(BloomFilter[hash1] && BloomFilter[hash2]){
+        return 1;
+    } else
+        return 0;
+}
+
+/*
+ * MurmurHash3, created by Austin Appleby for use in non-cryptographic hashing, is a uniformly distributed and independent function
+ * which good performance
+ */
 
 uint32_t CacheLayer::MurmurHash3(const char* key, int len, uint32_t seed)
 {
@@ -111,4 +191,22 @@ uint32_t CacheLayer::MurmurHash3(const char* key, int len, uint32_t seed)
     h1 = fmix(h1);
 
     return h1;
+}
+
+
+/*
+ * Bob Jenkin's Spooky Hash, a uniformly distibuted and independent function used for its simplicity and efficiency in implementation
+ * the 32-bit variant is used to provide hash keys from the original string keys
+ */
+
+uint32_t CacheLayer::SpookyHash(const char* message, int len, uint32_t seed)
+{
+    uint64_t hash1 = seed, hash2 = seed;
+    SpookyHash128(message, len, &hash1, &hash2);
+    return (uint32_t)hash1;
+}
+
+void CacheLayer::HashCollisionResolution(const char* key)
+{
+
 }
