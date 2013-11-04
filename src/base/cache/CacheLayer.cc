@@ -28,37 +28,7 @@
 
 // Block of inline functions used in both hashing algorithms
 
-/*
- * ROTL, this function is used to rotate the hashed before final hash is complete
- */
-inline uint32_t ROTL ( uint32_t x, int8_t r )
-{
-    return (x << r) | (x >> (32 - r));
-}
 
-/*
- * fmix, final mixing of bytes for releasing hash
- */
-inline uint32_t fmix ( uint32_t h )
-{
-    h ^= h >> 16;
-    h *= 0x85ebca6b;
-    h ^= h >> 13;
-    h *= 0xc2b2ae35;
-    h ^= h >> 16;
-
-    return h;
-}
-
-/*
- * GetBlock, used as a byte block read for MurmurHash3, used to seperate key, allowing easy folding of data when used in hashing
- */
-inline uint32_t getblock ( const uint32_t * p, int i )
-{
-    return p[i];
-}
-
-// end of inline functions
 
 
 Define_Module(CacheLayer);
@@ -67,6 +37,7 @@ void CacheLayer::initialize(int stage)
 {
     BatteryAccess::initialize(stage);
     if(stage == 0){
+        intPacketTTL = par("intPacketTTL");
         CacheSize = par("CacheSize");
         WordSize = par("WordSize");
 
@@ -77,12 +48,42 @@ void CacheLayer::initialize(int stage)
 
         BloomFilter = new int[CacheSize];
         CacheMem = new int[CacheSize];
+        TTL = new int[CacheSize];
+        timingMsg = new cMessage("Cache scheduling packet", CACHE_SCHEDULING_MESSAGE_TYPE);
+
     }
     if(stage == 1){
-
+        scheduleAt(simTime() + uniform(0,intPacketTTL),timingMsg);
     }
 }
 
+void CacheLayer::handleMessage(cMessage *msg)
+{
+    if(msg->isSelfMessage()){
+        handleSelfMsg(msg);
+    }
+}
+
+void CacheLayer::handleSelfMsg(cMessage *msg)
+{
+    if(msg->getKind() == CACHE_SCHEDULING_MESSAGE_TYPE){
+
+        for(int i = 0; i < CacheSize;i++){
+            if(CacheMem[i] == 1){
+                TTL[i] -= 1;
+                if(TTL[i] == 0){
+                    CacheMem[i] = 0;
+                }
+            }
+
+        }
+        scheduleAt(simTime() + intPacketTTL, timingMsg);
+    }else {
+        opp_error("Wrong message type received, recheck pit configurations");
+    }
+
+
+}
 int CacheLayer::checkCache(const char* msgData,uint32_t* k1, uint32_t* k2)
 {
     *k1 = MurmurHash3(msgData, WordSize , 1) / CacheSize;
@@ -102,13 +103,13 @@ int CacheLayer::checkCache(const char* msgData,uint32_t* k1, uint32_t* k2)
 
 void CacheLayer::updateCache(const char* msgData,int mode,uint32_t k1, uint32_t k2)
 {
-   if(mode == UPDATE){                                      //update element
-        strcpy(Cache[k1], msgData);
-        CacheMem[k1] = 1;
+    if(mode == UPDATE){                                      //update element
+        TTL[k1] = FULL_TTL;
     } else if(mode == INSERT){                               //insert element
         strcpy(Cache[k1], msgData);
         updateBloomFilter(k1,k2);
         CacheMem[k1] = 1;
+        TTL[k1] = FULL_TTL;
     } else if(mode == DEL){                                //delete element
         CacheMem[k1] = 0;
     } else{

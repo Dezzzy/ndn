@@ -20,4 +20,6 @@ package ndn.src.base.cache;
 //
 simple PendingInterestTable extends CacheLayer
 {
+    parameters:
+        int intPacketTTL;
 }

@@ -23,7 +23,7 @@
 #include "ArpInterface.h"
 #include "BaseModule.h"
 #include "NetwControlInfo.h"
-#include "ApplPkt_m.h"
+
 #include "BaseApplLayer.h"
 // Cache Layer includes
 #include "CacheLayer.h"
@@ -44,7 +44,9 @@ public:
     enum BASE_NDN_CONTROL_KINDS{
 
     };
-cMessage *startMessage;
+    cMessage *startMessage;
+    char** intData;
+
 
 protected:
     PendingInterestTable* pit;
@@ -52,6 +54,7 @@ protected:
     ForwardingInfoBase* fib;
     int packetTiming;
     int headerLength;
+    int DataSetSize;
 
     LAddress::L3Type myAppAddress;
     LAddress::L3Type destAddress;
@@ -75,6 +78,8 @@ protected:
     virtual void sendNextMessage(int messageType, const char*  data);
 
     virtual void finish();
+
+    void genInterestPacket();
 };
 
 #endif

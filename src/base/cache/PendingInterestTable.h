@@ -33,6 +33,7 @@ public:
     };
 
     int* reqType;
+
 public:
     int isSelfRequest(const char*  msgData);
     int isExternalRequest(const char* msgData);

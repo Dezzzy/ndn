@@ -38,38 +38,26 @@ public:
         INSERT = 1,
         DEL = 2
     };
+
+    enum CACHE_MESSAGE_KINDS{
+        CACHE_SCHEDULING_MESSAGE_TYPE = 25300
+    };
+
+    enum CACHE_TTL_KINDS{
+        FULL_TTL = 100,
+        HALF_TTL
+    };
+
     char** Cache;
     int* CacheMem;
     int* BloomFilter;
+    int* TTL;
 
-protected:
-    int CacheSize;
-    int WordSize;
-    // number of uint64's in internal state
-    static const size_t sc_numVars = 12;
+    int intPacketTTL;
+    cMessage* timingMsg;
 
-    // size of the internal state
-    static const size_t sc_blockSize = sc_numVars*8;
 
-    // size of buffer of unhashed data, in bytes
-    static const size_t sc_bufSize = 2*sc_blockSize;
 
-    //
-    // sc_const: a constant which:
-    //  * is not zero
-    //  * is odd
-    //  * is a not-very-regular mix of 1's and 0's
-    //  * does not need any other special mathematical properties
-    //
-    static const uint64 sc_const = 0xdeadbeefdeadbeefULL;
-
-    uint64_t m_data[2*sc_numVars];   // unhashed data, for partial messages
-    uint64_t m_state[sc_numVars];  // internal state of the hash
-    size_t m_length;             // total length of the input so far
-    uint8_t  m_remainder;          // length of unhashed data stashed in m_data
-
-public:
-    virtual void initialize(int stage);
 
     static inline uint64_t Rot64(uint64 x, int k)
     {
@@ -156,6 +144,40 @@ public:
         s11 += data[11];    s1 ^= s9;    s10 ^= s11;    s11 = Rot64(s11,46);    s10 += s0;
     }
 
+    /*
+     * ROTL, this function is used to rotate the hashed before final hash is complete
+     */
+    inline uint32_t ROTL ( uint32_t x, int8_t r )
+    {
+        return (x << r) | (x >> (32 - r));
+    }
+
+    /*
+     * fmix, final mixing of bytes for releasing hash
+     */
+    inline uint32_t fmix ( uint32_t h )
+    {
+        h ^= h >> 16;
+        h *= 0x85ebca6b;
+        h ^= h >> 13;
+        h *= 0xc2b2ae35;
+        h ^= h >> 16;
+
+        return h;
+    }
+
+    /*
+     * GetBlock, used as a byte block read for MurmurHash3, used to seperate key, allowing easy folding of data when used in hashing
+     */
+    inline uint32_t getblock ( const uint32_t * p, int i )
+    {
+        return p[i];
+    }
+
+    // end of inline functions
+
+
+    virtual void initialize(int stage);
     virtual int checkCache(const char* msgData,uint32_t* k1, uint32_t* k2);
     virtual void updateCache(const char* msgData,int mode,uint32_t k1, uint32_t k2);
     virtual const char* retreiveCacheData(const char* msgData,uint32_t k1, uint32_t k2);
@@ -163,18 +185,39 @@ public:
     virtual void updateBloomFilter(uint32_t hash1, uint32_t hash2);
     virtual int checkBloomFilter(uint32_t hash1, uint32_t hash2);
 
+
+
 protected:
 
-    virtual void handleMessage(cMessage *msg)
-    {
-        opp_error("module should not be receiving messages from other modules, check connections and configurations");
-        delete msg;
-    }
-    virtual void handleSelfMsg(cMessage *msg)
-    {
-        opp_error("module should not be receiving messages from other modules, check connections and configurations");
-        delete msg;
-    }
+    int CacheSize;
+    int WordSize;
+    // number of uint64's in internal state
+    static const size_t sc_numVars = 12;
+
+    // size of the internal state
+    static const size_t sc_blockSize = sc_numVars*8;
+
+    // size of buffer of unhashed data, in bytes
+    static const size_t sc_bufSize = 2*sc_blockSize;
+
+    //
+    // sc_const: a constant which:
+    //  * is not zero
+    //  * is odd
+    //  * is a not-very-regular mix of 1's and 0's
+    //  * does not need any other special mathematical properties
+    //
+    static const uint64 sc_const = 0xdeadbeefdeadbeefULL;
+
+    uint64_t m_data[2*sc_numVars];   // unhashed data, for partial messages
+    uint64_t m_state[sc_numVars];  // internal state of the hash
+    size_t m_length;             // total length of the input so far
+    uint8_t  m_remainder;          // length of unhashed data stashed in m_data
+
+    virtual void handleMessage(cMessage *msg);
+
+    virtual void handleSelfMsg(cMessage *msg);
+
 
 
 

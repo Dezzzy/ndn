@@ -32,16 +32,18 @@ network Ndn
     submodules:
         connectionManager: ConnectionManager {
             parameters:
-                @display("p=150,0;b=42,42,rect,green,,;i=abstract/multicast");
+                @display("p=253,52;b=42,42,rect,green;i=abstract/multicast");
         }
         world: BaseWorldUtility {
             parameters:
                 playgroundSizeX = playgroundSizeX;
                 playgroundSizeY = playgroundSizeY;
                 playgroundSizeZ = playgroundSizeZ;
-                @display("p=30,0;i=misc/globe");
+                @display("p=29,52;i=misc/globe");
         }
-		node[numNodes]: XNode {}
+        node[numNodes]: XNode {
+            @display("p=141,128");
+        }
     connections allowunconnected:
 
 }

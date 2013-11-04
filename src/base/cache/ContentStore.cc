@@ -19,10 +19,24 @@ Define_Module(ContentStore);
 
 void ContentStore::initialize(int stage)
 {
-    // TODO - Generated method body
+    CacheLayer::initialize(stage);
+    if(stage == 0){
+
+    }
 }
 
-void ContentStore::handleMessage(cMessage *msg)
+void ContentStore::updateCache(const char* msgData, uint32_t k1, uint32_t k2, int lifeSpan)
 {
-    // TODO - Generated method body
+    if(mode == UPDATE){                                      //update element
+        TTL[k1] = lifeSpan;
+    } else if(mode == INSERT){                               //insert element
+        strcpy(Cache[k1], msgData);
+        updateBloomFilter(k1,k2);
+        CacheMem[k1] = 1;
+        TTL[k1] = lifeSpan;
+    } else if(mode == DEL){                                //delete element
+        CacheMem[k1] = 0;
+    } else{
+        opp_error("wrong mode command given to cache, recheck cache call");
+    }
 }

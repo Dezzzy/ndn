@@ -23,14 +23,17 @@
 class ContentStore : public CacheLayer
 {
 public:
+    enum CACHE_TTL_KINDS{
+        FULL_TTL = 100,
+        HALF_TTL
+    };
 
-public:
-    virtual int checkCache(const char* msgData);
-    virtual void updateCache(const char* msgData,int mode);
-    virtual const char* retreiveCacheData(const char* msgData);
+    virtual int checkCache(const char* msgData,uint32_t* k1, uint32_t* k2);
+    virtual void updateCache(const char* msgData,int mode,uint32_t k1, uint32_t k2);
+    virtual const char* retreiveCacheData(const char* msgData,uint32_t k1, uint32_t k2);
 
-    virtual void updateBloomFilter(const char* key);
-    virtual int checkBloomFilter(const char* key);
+    virtual void updateBloomFilter(uint32_t hash1, uint32_t hash2);
+    virtual int checkBloomFilter(uint32_t hash1, uint32_t hash2);
 protected:
     virtual void initialize(int stage);
     virtual void handleMessage(cMessage *msg);

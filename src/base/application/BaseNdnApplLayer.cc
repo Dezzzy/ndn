@@ -24,6 +24,7 @@ void BaseNdnApplLayer::initialize(int stage)
     if(stage == 0){
         packetTiming = par("packetTiming");
         headerLength = par("headerLength");
+        //DataSetSize = par("DataSetSize");
         //debug = par("debug");
         // pointer to NDN cache components
         pit = FindModule<PendingInterestTable*>::findSubModule(findHost());
@@ -31,8 +32,22 @@ void BaseNdnApplLayer::initialize(int stage)
         fib = FindModule<ForwardingInfoBase*>::findSubModule(findHost());
 
         startMessage = new cMessage("first packet", BASE_NDN_START_MESSAGE);
+        for(int i  = 0; i < 10;i++){
+            intData[i] = new char[100];
+        }
     }
     if(stage == 1){
+        strcpy(intData[0],"car");
+        strcpy(intData[1],"place");
+        strcpy(intData[2],"tool");
+        strcpy(intData[3],"person");
+        strcpy(intData[4],"state");
+        strcpy(intData[5],"animal");
+        strcpy(intData[6],"emotion");
+        strcpy(intData[7],"car");
+        strcpy(intData[8],"car");
+        strcpy(intData[9],"car");
+
         scheduleAt(simTime() +uniform(0, packetTiming), startMessage);
     }
 
@@ -77,19 +92,20 @@ void BaseNdnApplLayer::handleLowerMsg(cMessage *msg)
         if(Hit){
             if(pit->isSelfRequest(pitHash1)){
                 cs->checkCache(m->getName(),&csHash1, &csHash2);
-                cs->updateCache(m->getName(),1,csHash1,csHash2);
+                cs->updateCache(m->getName(),CacheLayer::INSERT,csHash1,csHash2,CacheLayer::FULL_TTL);
             }
             if(pit->isExternalRequest(pitHash1)){
                 sendNextMessage(BASE_NDN_DATA_MESSAGE,m->getName());
             }
+            pit->updateCache(m->getName(),PendingInterestTable::DEL,pitHash1,pitHash2,PendingInterestTable::NO_REQ);
 
         } else{
             Hit = 0;
             Hit = cs->checkCache(m->getName(), &csHash1,&csHash2);
             if(Hit){
-                cs->updateCache(m->getName(),0, csHash1,csHash2);
+                cs->updateCache(m->getName(),CacheLayer::UPDATE, csHash1,csHash2,CacheLayer::HALF_TTL);
             } else {
-                cs->updateCache(m,getName(),1,csHash1,csHash2);
+                cs->updateCache(m,getName(),CacheLayer::INSERT,csHash1,csHash2,CacheLayer::HALF_TTL);
             }
 
         }
@@ -122,9 +138,9 @@ void BaseNdnApplLayer::handleLowerMsg(cMessage *msg)
             Hit = pit->checkCache(m->getName(),&pitHash1, &pitHash2);
 
             if(Hit){
-                pit->updateCache(m->getName(),0,k1,k2);
+                pit->updateCache(m->getName(),PendingInterestTable::UPDATE,k1,k2,PendingInterestTable::EXTERNAL_REQ);
             } else{
-                pit->updateCache(m->getName(),1,k1,k2);
+                pit->updateCache(m->getName(),PendingInterestTable::INSERT,k1,k2,PendingInterestTable::EXTERNAL_REQ);
                 sendNextMessage(BASE_NDN_INTEREST_MESSAGE,m.getName());
 
             }
@@ -155,4 +171,16 @@ void BaseNdnApplLayer::sendNextMessage(int messageType, const char* data)
 
 void BaseNdnApplLayer::finish(){
 
+}
+
+void BaseNdnApplLayer::genInterestPacket()
+{
+    uint32_t h1,h2;
+    int selector;
+    srand(time(NULL));
+    selector = rand() % 10 + 1;
+    if(!pit->checkCache(intData[selector],&h1,&h2)){
+        sendNectMessage(BASE_NDN_INTEREST_MESSAGE,intData);
+        pit->updateCache(intData[selector],PendingInterestTable::INSERT,h1,h2,PendingInterestTable::SELF_REQ);
+    }
 }

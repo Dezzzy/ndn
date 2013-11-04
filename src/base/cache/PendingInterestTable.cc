@@ -21,16 +21,18 @@ void PendingInterestTable::initialize(int stage)
 {
     CacheLayer::initialize(stage);
     if(stage == 0){
+
         reqType = new int[CacheSize];
         for(int i= 0; i < CacheSize; i++){
             reqType = NO_REQ;
         }
+
     }
     if(stage == 1){
 
+
     }
 }
-
 
 int PendingInterestTable::isSelfRequest(uint32_t h1, uint32_t h2)
 {
@@ -65,6 +67,7 @@ virtual void PendingInterestTable::updateCache(const char* msgData,int mode,uint
 {
     CacheLayer::updateCache(msgData,mode,k1,k2);
     setRequestType(type);
+    TTL[k1] = 10;
 }
 
 

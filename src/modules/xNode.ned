@@ -31,11 +31,11 @@ module XNode
         string networkType = default("BaseNetwLayer");       //type of the network layer
         string mobilityType = default("ConstSpeedMobility"); //type of the mobility module
         string arpType = default("BaseArp"); //type of address resolution module
-        string nicType;
-        string applicationType = default("BaseNdnApplication|Layer");
+        string nicType = default("NicCSMA");
+        string applicationType = default("BaseNdnApplLayer");
         string pitType = default("PendingInterestTable");
         string csType = default("ContentStore");
-        string fibType = default("forwardingInfoBase");
+        string fibType = default("ForwardingInfoBase");
         @display("bgb=210,450,white;i=device/palm;b=40,40,rect");
 
     gates:

@@ -17,7 +17,8 @@ package ndn.src.base.application;
 
 import org. mixim.base.modules.BaseLayer;
 
-simple BaseNdnApplLayer extends BaseLayer
+
+simple BaseNdnApplLayer extends BaseLayer like IBaseNdnApplLayer
 {
     
 }
